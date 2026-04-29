@@ -4,10 +4,10 @@ import { PactV4, MatchersV3 } from "@pact-foundation/pact";
 const { like, eachLike, integer, string, regex } = MatchersV3;
 
 test.describe("Users API - Consumer Contract @contract", () => {
-  const pact: PactV4 = createPact("web-frontend", "users-service");
+  const provider: PactV4 = createPact("web-frontend", "users-service");
 
   test("GET /users/:id - should return a user matching the contract", async () => {
-    await pact
+    await provider
       .addInteraction()
       .given("a user with ID 1 exists")
       .uponReceiving("a request to get user by ID")
@@ -59,7 +59,7 @@ test.describe("Users API - Consumer Contract @contract", () => {
   });
 
   test("GET /users - should return a list of users matching the contract", async () => {
-    await pact
+    await provider
       .addInteraction()
       .given("users exist")
       .uponReceiving("a request to list all users")
@@ -115,10 +115,10 @@ test.describe("Users API - Consumer Contract @contract", () => {
 });
 
 test.describe("Posts API - Consumer Contract @contract", () => {
-  const pact: PactV4 = createPact("web-frontend", "posts-service");
+  const provider: PactV4 = createPact("web-frontend", "posts-service");
 
   test("GET /posts/:id - should return a post matching the contract", async () => {
-    await pact
+    await provider
       .addInteraction()
       .given("a post with ID 1 exists")
       .uponReceiving("a request to get post by ID")
@@ -153,7 +153,7 @@ test.describe("Posts API - Consumer Contract @contract", () => {
   });
 
   test("POST /posts - should create a post matching the contract", async () => {
-    await pact
+    await provider
       .addInteraction()
       .given("the posts service is available")
       .uponReceiving("a request to create a new post")
@@ -207,10 +207,10 @@ test.describe("Posts API - Consumer Contract @contract", () => {
 });
 
 test.describe("Comments API - Consumer Contract @contract", () => {
-  const pact: PactV4 = createPact("web-frontend", "comments-service");
+  const provider: PactV4 = createPact("web-frontend", "comments-service");
 
   test("GET /posts/:id/comments - should return comments matching the contract", async () => {
-    await pact
+    await provider
       .addInteraction()
       .given("post 1 has comments")
       .uponReceiving("a request to get comments for post 1")
