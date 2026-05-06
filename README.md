@@ -2,45 +2,62 @@
 
 A scalable and modular Playwright test framework in TypeScript for API test automation, featuring **Zod schema validation** and **Pact consumer-driven contract testing (CDCT)**.
 
+## Tech Stack
+
+| Tool | Purpose |
+|---|---|
+| [Playwright](https://playwright.dev/) | Test runner and HTTP client |
+| [TypeScript](https://www.typescriptlang.org/) | Type-safe test authoring |
+| [Zod](https://zod.dev/) | Runtime schema validation |
+| [Pact](https://docs.pact.io/) | Consumer-driven contract testing |
+| [dotenv](https://github.com/motdotla/dotenv) | Environment configuration |
+
 ## Project Structure
 
 ```
+├── env/
+│   └── .env.openapi              # Environment variable template
 ├── src/
-│   ├── api/                  # API client wrapper around Playwright requests
-│   │   ├── api-client.ts
-│   │   └── index.ts
-│   ├── config/               # Environment and framework configuration
-│   │   ├── env.config.ts
-│   │   └── index.ts
-│   ├── data/                 # Test data factories
-│   │   ├── test-data.ts
-│   │   └── index.ts
-│   ├── fixtures/             # Playwright custom fixtures
-│   │   ├── api.fixture.ts
-│   │   └── index.ts
-│   ├── pact/                 # Pact setup and helpers
-│   │   ├── pact-setup.ts
-│   │   └── index.ts
-│   ├── schemas/              # Zod schema definitions
-│   │   ├── user.schema.ts
-│   │   ├── post.schema.ts
-│   │   ├── comment.schema.ts
-│   │   └── index.ts
-│   └── utils/                # Validation utilities
-│       ├── schema-validator.ts
-│       └── index.ts
+│   ├── proxy.ts                  # Single re-export proxy (replaces barrel index files)
+│   ├── api/
+│   │   └── api-client.ts         # Typed API client (GET/POST/PUT/PATCH/DELETE + form-data variants)
+│   ├── config/
+│   │   └── env.config.ts         # Centralised environment config
+│   ├── data/
+│   │   └── test-data.ts          # Shared test data
+│   ├── fixtures/
+│   │   └── api.fixture.ts        # Playwright custom fixture (injects apiClient)
+│   ├── pact/
+│   │   ├── pact-setup.ts         # PactV4 consumer factory
+│   │   └── provider-verifier.ts  # Pact Verifier factory for provider tests
+│   ├── schemas/
+│   │   ├── comment.schema.ts     # JSONPlaceholder comments
+│   │   ├── health.schema.ts      # Notes API health check
+│   │   ├── note.schema.ts        # Notes API note CRUD
+│   │   ├── post.schema.ts        # JSONPlaceholder posts
+│   │   ├── user-account.schema.ts# Notes API user registration / login / profile
+│   │   └── user.schema.ts        # JSONPlaceholder users
+│   └── utils/
+│       └── schema-validator.ts   # validateSchema / validateArraySchema helpers
 ├── tests/
-│   ├── api/                  # Functional API tests
-│   │   └── posts.api.spec.ts
-│   ├── contract/             # Pact consumer contract tests
-│   │   └── api.contract.spec.ts
-│   └── schema/               # Zod schema validation tests
-│       └── api.schema.spec.ts
+│   ├── api/
+│   │   └── posts.api.spec.ts     # JSONPlaceholder functional API tests
+│   ├── consumer-contract/
+│   │   └── api.contract.spec.ts  # Pact consumer contract definitions
+│   ├── notes-api/
+│   │   ├── health.spec.ts        # Notes API health check tests
+│   │   ├── users.spec.ts         # Notes API user registration/login/profile tests
+│   │   └── notes.spec.ts         # Notes API note CRUD tests
+│   ├── provider-contract/
+│   │   ├── users-service.provider.spec.ts    # Verifies users-service pact
+│   │   ├── posts-service.provider.spec.ts    # Verifies posts-service pact
+│   │   └── comments-service.provider.spec.ts # Verifies comments-service pact
+│   └── schema/
+│       └── api.schema.spec.ts    # Zod schema validation tests
+├── pacts/                        # Generated pact files (consumer → provider)
 ├── playwright.config.ts
 ├── tsconfig.json
-├── package.json
-└── env/
-│   └── .env.openapi
+└── package.json
 ```
 
 ## Setup
@@ -49,9 +66,19 @@ A scalable and modular Playwright test framework in TypeScript for API test auto
 # Install dependencies
 npm install
 
-# Copy environment config
+# Copy and configure environment variables
 cp env/.env.openapi .env
 ```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `BASE_URL` | `https://jsonplaceholder.typicode.com` | JSONPlaceholder base URL |
+| `NOTES_API_BASE_URL` | `https://practice.expandtesting.com/notes/api` | Notes API base URL |
+| `PACT_CONSUMER` | `api-consumer` | Pact consumer name |
+| `PACT_PROVIDER` | `api-provider` | Pact provider name |
+| `PACT_BROKER_URL` | `http://localhost:9292` | Pact Broker URL (optional) |
 
 ## Running Tests
 
@@ -59,30 +86,53 @@ cp env/.env.openapi .env
 # Run all tests
 npm test
 
-# Run only schema validation tests
-npm run test:schema
+# Run by category
+npm run test:schema      # Zod schema validation tests
+npm run test:contract    # Pact consumer contract tests (generates pacts/)
+npm run test:provider    # Pact provider verification tests (requires pacts/ to exist)
+npm run test:api         # JSONPlaceholder functional API tests
 
-# Run only Pact contract tests
+# Run by Playwright project name
+npx playwright test --project=schema-validation
+npx playwright test --project=consumer-contract
+npx playwright test --project=provider-contract
+npx playwright test --project=api-tests
+npx playwright test --project=notes-api
+
+# Run a specific spec file
+npx playwright test tests/notes-api/notes.spec.ts
+```
+
+### Contract Testing Workflow
+
+Provider verification requires pact files generated by the consumer tests:
+
+```bash
+# Step 1 — run consumer tests to generate pacts/
 npm run test:contract
 
-# Run only API functional tests
-npm run test:api
-
-# Run by Playwright project
-npx playwright test --project=schema-validation
-npx playwright test --project=contract-tests
-npx playwright test --project=api-tests
+# Step 2 — verify the real provider honours those contracts
+npm run test:provider
 ```
+
+## Playwright Projects
+
+| Project | testMatch | Description |
+|---|---|---|
+| `schema-validation` | `*.schema.spec.ts` | Zod schema validation |
+| `consumer-contract` | `consumer-contract/*.spec.ts` | Pact consumer interactions |
+| `provider-contract` | `provider-contract/*.spec.ts` | Pact provider verification (workers: 1) |
+| `api-tests` | `*.api.spec.ts` | Functional CRUD tests |
+| `notes-api` | `notes-api/*.spec.ts` | Notes API end-to-end tests |
 
 ## Key Concepts
 
 ### Schema Validation (Zod)
 
-Zod schemas in `src/schemas/` define the expected shape of API responses. The `validateSchema()` utility parses responses and returns structured results with detailed error messages.
+Schemas in `src/schemas/` define the expected shape of API responses. `validateSchema()` returns a structured result with typed data or detailed error messages.
 
 ```typescript
-import { validateSchema } from "./src/utils";
-import { UserSchema } from "./src/schemas";
+import { validateSchema, UserSchema } from "./src/proxy";
 
 const result = validateSchema(UserSchema, responseBody);
 if (!result.success) {
@@ -92,36 +142,63 @@ if (!result.success) {
 
 ### Consumer-Driven Contract Testing (Pact)
 
-Pact tests in `tests/contract/` define consumer expectations using PactV4 matchers. When tests run, Pact generates contract files in `pacts/` that can be shared with provider teams.
+Consumer tests in `tests/consumer-contract/` define interactions using PactV4 matchers and write pact files to `pacts/`. Provider tests in `tests/provider-contract/` replay those pacts against the real provider.
 
 ```typescript
+// Consumer (defines the contract)
 await pact
   .addInteraction()
-  .given("a user exists")
-  .uponReceiving("a request for the user")
-  .withRequest("GET", "/users/1")
-  .willRespondWith(200, (builder) => {
-    builder.jsonBody(like({ id: integer(1), name: string("Alice") }));
-  })
+  .given("a user with ID 1 exists")
+  .uponReceiving("a request to get user by ID")
+  .withRequest("GET", "/users/1", (b) => b.headers({ Accept: "application/json" }))
+  .willRespondWith(200, (b) => b.jsonBody(like({ id: integer(1), name: string("Alice") })))
   .executeTest(async (mockServer) => {
     const res = await fetch(`${mockServer.url}/users/1`);
     expect(res.status).toBe(200);
   });
+
+// Provider (verifies the contract)
+const verifier = createProviderVerifier({
+  provider: "users-service",
+  providerBaseUrl: "https://jsonplaceholder.typicode.com",
+  stateHandlers: {
+    "a user with ID 1 exists": async () => Promise.resolve(),
+  },
+});
+await verifier.verifyProvider();
 ```
 
 ### API Client
 
-The `ApiClient` class wraps Playwright's `APIRequestContext` and adds response timing and typed responses:
+`ApiClient` wraps Playwright's `APIRequestContext` with typed responses and response timing. Use `postForm` / `putForm` / `patchForm` for APIs that accept `application/x-www-form-urlencoded` (e.g. Notes API).
 
 ```typescript
-const response = await apiClient.get<User>("/users/1");
-// response.status, response.body, response.headers, response.responseTime
+// JSON body
+const response = await apiClient.post<Post>("/posts", { title: "Hello", body: "World", userId: 1 });
+
+// Form data
+const response = await apiClient.postForm<NoteResponse>(
+  "/notes",
+  { title: "My Note", description: "Content", category: "Work" },
+  { headers: { "x-auth-token": token } }
+);
+
+// response.status | response.body | response.headers | response.responseTime
 ```
 
-## Adding New API Endpoints
+### Proxy Module
 
-1. **Define schema** in `src/schemas/` (e.g., `order.schema.ts`)
-2. **Export** from `src/schemas/index.ts`
+All framework exports are centralised in `src/proxy.ts` — a single import covers schemas, utilities, fixtures, and Pact helpers:
+
+```typescript
+import { test, expect, validateSchema, UserSchema, createPact } from "../../src/proxy";
+```
+
+## Adding Tests for a New API
+
+1. **Add Zod schema** in `src/schemas/` (e.g. `order.schema.ts`)
+2. **Export** from `src/proxy.ts`
 3. **Add schema test** in `tests/schema/`
-4. **Add contract test** in `tests/contract/`
-5. **Add API test** in `tests/api/`
+4. **Add consumer contract** in `tests/consumer-contract/`
+5. **Add provider verification** in `tests/provider-contract/`
+6. **Add functional tests** in `tests/api/`

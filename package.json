@@ -5,7 +5,8 @@
   "scripts": {
     "test": "npx playwright test",
     "test:schema": "npx playwright test --grep @schema",
-    "test:contract": "npx playwright test --grep @contract",
+    "test:contract": "npx playwright test --project=consumer-contract",
+    "test:provider": "npx playwright test --project=provider-contract",
     "test:api": "npx playwright test --grep @api",
     "pact:publish": "ts-node src/pact/publish.ts",
     "lint": "eslint src/ tests/"
