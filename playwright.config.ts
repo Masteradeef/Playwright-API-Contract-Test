@@ -26,8 +26,8 @@ export default defineConfig({
       testMatch: /.*\.schema\.spec\.ts/,
     },
     {
-      name: "contract-tests",
-      testMatch: /.*\.contract\.spec\.ts/,
+      name: "consumer-contract",
+      testMatch: /.*consumer-contract\/.+\.spec\.ts/,
     },
     {
       name: "api-tests",
@@ -41,6 +41,14 @@ export default defineConfig({
           process.env.NOTES_API_BASE_URL ||
           "https://practice.expandtesting.com/notes/api",
       },
+    },
+    {
+      name: "provider-contract",
+      testMatch: /.*provider-contract\/.+\.spec\.ts/,
+      // Provider verification is a sequential, stateful operation —
+      // disable retries and parallelism so Pact output is deterministic.
+      retries: 0,
+      workers: 1,
     },
   ],
 });

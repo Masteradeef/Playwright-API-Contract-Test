@@ -13,6 +13,8 @@ export { test, expect } from "./fixtures/api.fixture";
 
 // Pact
 export { createPact } from "./pact/pact-setup";
+export { createProviderVerifier } from "./pact/provider-verifier";
+export type { ProviderVerifierConfig } from "./pact/provider-verifier";
 
 // Schemas
 export { UserSchema, UsersArraySchema, AddressSchema, CompanySchema, GeoSchema } from "./schemas/user.schema";
