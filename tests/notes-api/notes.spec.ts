@@ -1,61 +1,15 @@
-import {
-  test,
-  expect,
-  validateSchema,
-  NoteResponseSchema,
-  NotesListResponseSchema,
-  NoteDeleteResponseSchema,
-} from "../../src/proxy";
-import type {
-  NoteResponse,
-  NotesListResponse,
-  LoginUserResponse,
-} from "../../src/proxy";
+import { test, expect, validateSchema, NoteResponseSchema, NotesListResponseSchema, NoteDeleteResponseSchema } from "../../src/proxy";
+import type { NoteResponse, NotesListResponse } from "../../src/proxy";
 
 const BASE_URL = process.env.NOTES_API_BASE_URL || "https://practice.expandtesting.com/notes/api";
 
-function generateTestUser() {
-  const uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  return {
-    name: `NoteUser_${uid}`,
-    email: `noteuser_${uid}@example.com`,
-    password: "TestPass123!",
-  };
-}
-
-let authToken: string;
-const testUser = generateTestUser();
-
+//Using fixture to generate test user and get auth token for all tests in this file. User will be deleted after tests complete.
 test.describe.configure({ mode: "serial" });
 
 test.describe("Notes API - CRUD @notes-api", () => {
   let createdNoteId: string;
 
-  test.beforeAll(async ({ request }) => {
-    // Register and login the test user
-    await request.post(`${BASE_URL}/users/register`, {
-      form: {
-        name: testUser.name,
-        email: testUser.email,
-        password: testUser.password,
-      },
-    });
-
-    const loginRes = await request.post(`${BASE_URL}/users/login`, {
-      form: { email: testUser.email, password: testUser.password },
-    });
-    const loginBody = (await loginRes.json()) as LoginUserResponse;
-    authToken = loginBody.data.token;
-  });
-
-  test.afterAll(async ({ request }) => {
-    // Cleanup: delete the test user
-    await request.delete(`${BASE_URL}/users/delete-account`, {
-      headers: { "x-auth-token": authToken },
-    });
-  });
-
-  test("POST /notes - should create a new note", async ({ apiClient }) => {
+  test("POST /notes - should create a new note", async ({ apiClient, authToken }) => {
     const response = await apiClient.postForm<NoteResponse>(
       `${BASE_URL}/notes`,
       {
@@ -80,9 +34,7 @@ test.describe("Notes API - CRUD @notes-api", () => {
     createdNoteId = response.body.data.id;
   });
 
-  test("GET /notes - should return all notes for the user", async ({
-    apiClient,
-  }) => {
+  test("GET /notes - should return all notes for the user", async ({ apiClient, authToken }) => {
     const response = await apiClient.get<NotesListResponse>(
       `${BASE_URL}/notes`,
       { headers: { "x-auth-token": authToken } }
@@ -95,9 +47,7 @@ test.describe("Notes API - CRUD @notes-api", () => {
     expect(result.data?.data.length).toBeGreaterThanOrEqual(1);
   });
 
-  test("GET /notes/:id - should return a note by ID", async ({
-    apiClient,
-  }) => {
+  test("GET /notes/:id - should return a note by ID", async ({ apiClient, authToken }) => {
     const response = await apiClient.get<NoteResponse>(
       `${BASE_URL}/notes/${createdNoteId}`,
       { headers: { "x-auth-token": authToken } }
@@ -111,7 +61,7 @@ test.describe("Notes API - CRUD @notes-api", () => {
     expect(result.data?.data.title).toBe("Test Note Title");
   });
 
-  test("PUT /notes/:id - should update a note", async ({ apiClient }) => {
+  test("PUT /notes/:id - should update a note", async ({ apiClient, authToken }) => {
     const response = await apiClient.putForm<NoteResponse>(
       `${BASE_URL}/notes/${createdNoteId}`,
       {
@@ -132,9 +82,7 @@ test.describe("Notes API - CRUD @notes-api", () => {
     expect(result.data?.data.category).toBe("Work");
   });
 
-  test("PATCH /notes/:id - should update completed status", async ({
-    apiClient,
-  }) => {
+  test("PATCH /notes/:id - should update completed status", async ({ apiClient, authToken }) => {
     const response = await apiClient.patchForm<NoteResponse>(
       `${BASE_URL}/notes/${createdNoteId}`,
       { completed: "true" },
@@ -148,7 +96,7 @@ test.describe("Notes API - CRUD @notes-api", () => {
     expect(result.data?.data.completed).toBe(true);
   });
 
-  test("DELETE /notes/:id - should delete a note", async ({ apiClient }) => {
+  test("DELETE /notes/:id - should delete a note", async ({ apiClient, authToken }) => {
     const response = await apiClient.delete(
       `${BASE_URL}/notes/${createdNoteId}`,
       { headers: { "x-auth-token": authToken } }
@@ -160,9 +108,7 @@ test.describe("Notes API - CRUD @notes-api", () => {
     expect(result.success).toBe(true);
   });
 
-  test("GET /notes/:id - should return 401 without auth", async ({
-    apiClient,
-  }) => {
+  test("GET /notes/:id - should return 401 without auth", async ({ apiClient }) => {
     const response = await apiClient.get(
       `${BASE_URL}/notes/${createdNoteId}`
     );
@@ -172,27 +118,7 @@ test.describe("Notes API - CRUD @notes-api", () => {
 });
 
 test.describe("Notes API - Validation @notes-api", () => {
-  test.beforeAll(async ({ request }) => {
-    if (!authToken) {
-      const user = generateTestUser();
-      await request.post(`${BASE_URL}/users/register`, {
-        form: {
-          name: user.name,
-          email: user.email,
-          password: user.password,
-        },
-      });
-      const loginRes = await request.post(`${BASE_URL}/users/login`, {
-        form: { email: user.email, password: user.password },
-      });
-      const loginBody = (await loginRes.json()) as LoginUserResponse;
-      authToken = loginBody.data.token;
-    }
-  });
-
-  test("POST /notes - should fail with missing title", async ({
-    apiClient,
-  }) => {
+  test("POST /notes - should fail with missing title", async ({ apiClient, authToken }) => {
     const response = await apiClient.postForm(`${BASE_URL}/notes`, {
       title: "",
       description: "Some description",
@@ -202,9 +128,7 @@ test.describe("Notes API - Validation @notes-api", () => {
     expect(response.status).toBe(400);
   });
 
-  test("POST /notes - should fail with invalid category", async ({
-    apiClient,
-  }) => {
+  test("POST /notes - should fail with invalid category", async ({ apiClient, authToken }) => {
     const response = await apiClient.postForm(`${BASE_URL}/notes`, {
       title: "Some title",
       description: "Some description",

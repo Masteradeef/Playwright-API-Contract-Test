@@ -57,7 +57,10 @@ export class ApiClient {
     const start = Date.now();
     const response = await this.request.post(endpoint, {
       form,
-      headers: options?.headers,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...options?.headers,
+      },
     });
     const responseTime = Date.now() - start;
 
@@ -97,7 +100,10 @@ export class ApiClient {
     const start = Date.now();
     const response = await this.request.put(endpoint, {
       form,
-      headers: options?.headers,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...options?.headers,
+      },
     });
     const responseTime = Date.now() - start;
 
@@ -137,7 +143,10 @@ export class ApiClient {
     const start = Date.now();
     const response = await this.request.patch(endpoint, {
       form,
-      headers: options?.headers,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...options?.headers,
+      },
     });
     const responseTime = Date.now() - start;
 

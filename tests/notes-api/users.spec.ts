@@ -1,21 +1,9 @@
-import {
-  test,
-  expect,
-  validateSchema,
-  RegisterUserResponseSchema,
-  LoginUserResponseSchema,
-  UserProfileResponseSchema,
-  GenericSuccessResponseSchema,
-  ErrorResponseSchema,
-} from "../../src/proxy";
-import type {
-  RegisterUserResponse,
-  LoginUserResponse,
-  UserProfileResponse,
-} from "../../src/proxy";
+import { test, expect, validateSchema, RegisterUserResponseSchema, LoginUserResponseSchema, UserProfileResponseSchema, GenericSuccessResponseSchema, ErrorResponseSchema } from "../../src/proxy";
+import type { RegisterUserResponse, LoginUserResponse, UserProfileResponse } from "../../src/proxy";
 
 const BASE_URL = process.env.NOTES_API_BASE_URL || "https://practice.expandtesting.com/notes/api";
 
+//without using fixture - creating and deleting user within each test
 function generateTestUser() {
   const uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   return {
@@ -26,9 +14,7 @@ function generateTestUser() {
 }
 
 test.describe("Users API - Registration @notes-api", () => {
-  test("POST /users/register - should create a new user", async ({
-    apiClient,
-  }) => {
+  test("POST /users/register - should create a new user", async ({ apiClient }) => {
     const user = generateTestUser();
 
     const response = await apiClient.postForm<RegisterUserResponse>(
@@ -48,9 +34,7 @@ test.describe("Users API - Registration @notes-api", () => {
     expect(result.data?.data.email).toBe(user.email);
   });
 
-  test("POST /users/register - should fail with missing fields", async ({
-    apiClient,
-  }) => {
+  test("POST /users/register - should fail with missing fields", async ({ apiClient }) => {
     const response = await apiClient.postForm(`${BASE_URL}/users/register`, {
       name: "",
       email: "",
@@ -72,13 +56,12 @@ test.describe("Users API - Login & Profile @notes-api", () => {
   test.beforeAll(async ({ request }) => {
     // Register the test user
     await request.post(`${BASE_URL}/users/register`, {
-      form: { name: user.name, email: user.email, password: user.password },
+      data: { name: user.name, email: user.email, password: user.password },
+      headers: { "Content-Type": "application/json" },
     });
   });
 
-  test("POST /users/login - should authenticate and return token", async ({
-    apiClient,
-  }) => {
+  test("POST /users/login - should authenticate and return token", async ({ apiClient }) => {
     const response = await apiClient.postForm<LoginUserResponse>(
       `${BASE_URL}/users/login`,
       { email: user.email, password: user.password }
@@ -94,9 +77,7 @@ test.describe("Users API - Login & Profile @notes-api", () => {
     authToken = response.body.data.token;
   });
 
-  test("POST /users/login - should fail with wrong password", async ({
-    apiClient,
-  }) => {
+  test("POST /users/login - should fail with wrong password", async ({ apiClient }) => {
     const response = await apiClient.postForm(`${BASE_URL}/users/login`, {
       email: user.email,
       password: "WrongPassword!",
@@ -109,9 +90,7 @@ test.describe("Users API - Login & Profile @notes-api", () => {
     expect(result.data?.success).toBe(false);
   });
 
-  test("GET /users/profile - should return user profile", async ({
-    apiClient,
-  }) => {
+  test("GET /users/profile - should return user profile", async ({ apiClient }) => {
     // Login to get fresh token
     const loginRes = await apiClient.postForm<LoginUserResponse>(
       `${BASE_URL}/users/login`,
@@ -132,9 +111,7 @@ test.describe("Users API - Login & Profile @notes-api", () => {
     expect(result.data?.data.name).toBe(user.name);
   });
 
-  test("PATCH /users/profile - should update profile information", async ({
-    apiClient,
-  }) => {
+  test("PATCH /users/profile - should update profile information", async ({ apiClient }) => {
     const loginRes = await apiClient.postForm<LoginUserResponse>(
       `${BASE_URL}/users/login`,
       { email: user.email, password: user.password }
@@ -155,9 +132,7 @@ test.describe("Users API - Login & Profile @notes-api", () => {
     expect(result.data?.data.company).toBe("Test Corp");
   });
 
-  test("GET /users/profile - should fail without auth token", async ({
-    apiClient,
-  }) => {
+  test("GET /users/profile - should fail without auth token", async ({ apiClient }) => {
     const response = await apiClient.get(`${BASE_URL}/users/profile`);
 
     expect(response.status).toBe(401);
@@ -167,9 +142,7 @@ test.describe("Users API - Login & Profile @notes-api", () => {
     expect(result.data?.success).toBe(false);
   });
 
-  test("DELETE /users/delete-account - should delete the user account", async ({
-    apiClient,
-  }) => {
+  test("DELETE /users/delete-account - should delete the user account", async ({ apiClient }) => {
     const loginRes = await apiClient.postForm<LoginUserResponse>(
       `${BASE_URL}/users/login`,
       { email: user.email, password: user.password }

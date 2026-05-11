@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // --- Register ---
 export const RegisterUserDataSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   name: z.string(),
   email: z.string().email(),
 });
@@ -34,8 +34,8 @@ export const UserProfileDataSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string().email(),
-  phone: z.string(),
-  company: z.string(),
+  phone: z.string().optional(),
+  company: z.string().optional(),
 });
 
 export const UserProfileResponseSchema = z.object({

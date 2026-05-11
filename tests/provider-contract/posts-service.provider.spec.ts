@@ -16,7 +16,7 @@ import { config } from "../../src/proxy";
 
 const PROVIDER_BASE_URL = config.baseUrl; // https://jsonplaceholder.typicode.com
 
-test.describe("posts-service – Provider Verification @provider", () => {
+test.describe("posts-service - Provider Verification @provider", () => {
   test.setTimeout(60_000);
 
   test("should satisfy all web-frontend consumer contracts", async () => {

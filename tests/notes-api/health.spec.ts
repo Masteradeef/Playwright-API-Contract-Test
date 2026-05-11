@@ -2,10 +2,8 @@ import { test, expect, validateSchema, HealthCheckResponseSchema } from "../../s
 
 const BASE_URL = process.env.NOTES_API_BASE_URL || "https://practice.expandtesting.com/notes/api";
 
-test.describe("Health Check API @notes-api", () => {
-  test("GET /health-check - should return healthy status", async ({
-    apiClient,
-  }) => {
+test.describe("Health Check API @notes-api", { tag: "@smoke" }, () => {
+  test("GET /health-check - should return healthy status", async ({ apiClient }) => {
     const response = await apiClient.get(`${BASE_URL}/health-check`);
 
     expect(response.status).toBe(200);
@@ -16,9 +14,7 @@ test.describe("Health Check API @notes-api", () => {
     expect(result.data?.message).toBeTruthy();
   });
 
-  test("GET /health-check - response time should be acceptable", async ({
-    apiClient,
-  }) => {
+  test("GET /health-check - response time should be acceptable", async ({ apiClient }) => {
     const response = await apiClient.get(`${BASE_URL}/health-check`);
 
     expect(response.status).toBe(200);

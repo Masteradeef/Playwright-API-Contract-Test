@@ -16,7 +16,7 @@ import { config } from "../../src/proxy";
 
 const PROVIDER_BASE_URL = config.baseUrl; // https://jsonplaceholder.typicode.com
 
-test.describe("users-service – Provider Verification @provider", () => {
+test.describe("users-service - Provider Verification @provider", () => {
   // Pact replays HTTP interactions; allow enough time for the full suite.
   test.setTimeout(60_000);
 
