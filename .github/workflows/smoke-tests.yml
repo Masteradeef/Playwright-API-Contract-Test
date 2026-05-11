@@ -1,0 +1,88 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Smoke-test gate for every pull request.
+#
+# PR merge protection (requirement 6):
+#   In GitHub → Settings → Branches → Branch protection rules for your default
+#   branch, enable "Require status checks to pass" and add
+#   "Playwright Smoke Tests" as a required check. The PR cannot be merged while
+#   this job is failing or has not run.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Smoke Tests - PR Gate
+
+on:
+  pull_request:
+
+# Cancel any in-progress run for the same PR when a new commit is pushed,
+# saving runner minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Playwright Smoke Tests
+    runs-on: ubuntu-latest
+
+    # Official Playwright Docker image – pins the exact CLI version used locally.
+    container:
+      image: mcr.microsoft.com/playwright:v1.50.0-noble
+      env:
+        # Playwright needs a writable HOME when running inside the GitHub
+        # Actions container environment.
+        HOME: /root
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Run smoke tests ──────────────────────────────────────────────────────
+      # --grep @smoke          → only tests tagged @smoke
+      # --max-failures=1       → fail fast: stop the whole run after the first
+      #                          test that fails (even after its retry)
+      # --trace retain-on-failure → capture Trace Viewer archives only for
+      #                             failing tests (keeps artifact size small)
+      # retries: 1 is already set in playwright.config.ts; each failing test
+      # therefore gets one automatic retry before counting as a failure, and
+      # both the initial run and the retry are logged by the list reporter.
+      - name: Run smoke tests
+        id: run-smoke
+        run: >
+          npx playwright test
+          --grep @smoke
+          --max-failures=1
+          --trace retain-on-failure
+        env:
+          CI: true
+
+      # ── Artifacts ────────────────────────────────────────────────────────────
+
+      # HTML report is uploaded on every run (pass or fail) so reviewers can
+      # inspect the results directly from the Actions summary without pulling
+      # the repo.
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: reports/html/
+          retention-days: 14
+
+      # Traces, screenshots (if any), and per-test failure-log markdown files
+      # are only uploaded when the job fails to keep storage usage low.
+      - name: Upload failure artifacts (traces, screenshots, failure logs)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          # test-results/  → Trace Viewer .zip archives, screenshots, and the
+          #                   error-context.md files generated per failing test
+          # reports/results.json → machine-readable summary for dashboards /
+          #                        downstream jobs
+          path: |
+            test-results/
+            reports/results.json
+          retention-days: 14
